@@ -3,11 +3,10 @@
 import { useEffect, useState } from "react";
 import { format } from "date-fns";
 import {
-  TrendingUp, TrendingDown, Minus, Sparkles, Send,
-  AlertTriangle, ChevronRight, RefreshCw, Wallet, Lock, BarChart3, ArrowRight, X, Receipt,
+  TrendingUp, TrendingDown, Minus,
+  AlertTriangle, ChevronRight, Wallet, Lock, BarChart3, ArrowRight, X, Receipt,
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
@@ -449,86 +448,6 @@ function TierSection({
   );
 }
 
-// ─── Scenario Planner ────────────────────────────────────────────────────────
-
-function ScenarioPlanner() {
-  const [question, setQuestion] = useState("");
-  const [answer, setAnswer] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-
-  const suggestions = [
-    "What if I spent ₹5K on an unplanned dinner?",
-    "Can I afford a ₹20K flight next week?",
-    "How does ₹8K on clothes affect my budget?",
-  ];
-
-  async function ask(q: string) {
-    if (!q.trim()) return;
-    setLoading(true);
-    setAnswer(null);
-    try {
-      const res = await fetch("/api/scenario", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question: q }),
-      });
-      const data = await res.json() as { answer?: string; error?: string };
-      setAnswer(data.answer ?? data.error ?? "Something went wrong");
-    } catch {
-      setAnswer("Could not connect to AI. Is Ollama running?");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  return (
-    <Card>
-      <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 text-sm font-semibold">
-          <Sparkles className="h-4 w-4 text-muted-foreground" />
-          Scenario Planner
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-3">
-        <div className="flex flex-wrap gap-2">
-          {suggestions.map((s) => (
-            <button
-              key={s}
-              onClick={() => { setQuestion(s); ask(s); }}
-              className="rounded-full border border-border px-3 py-1 text-xs text-muted-foreground hover:border-foreground hover:text-foreground transition-colors"
-            >
-              {s}
-            </button>
-          ))}
-        </div>
-        <div className="flex gap-2">
-          <input
-            type="text"
-            value={question}
-            onChange={(e) => setQuestion(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && ask(question)}
-            placeholder="Ask a what-if question…"
-            className="flex-1 rounded-lg border border-border bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
-          />
-          <Button
-            size="sm"
-            onClick={() => ask(question)}
-            disabled={loading || !question.trim()}
-            className="shrink-0"
-          >
-            {loading ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
-          </Button>
-        </div>
-        {answer && (
-          <div className="rounded-lg bg-muted p-3 text-sm text-foreground leading-relaxed whitespace-pre-wrap">
-            {answer}
-          </div>
-        )}
-      </CardContent>
-    </Card>
-  );
-}
-
 // ─── Main Dashboard ───────────────────────────────────────────────────────────
 
 export function DashboardClient() {
@@ -751,91 +670,87 @@ export function DashboardClient() {
         ))}
       </div>
 
-      {/* ── Bottom row: Scenario + Sidebar ── */}
+      {/* ── Bottom row: LTGS + SIPs + Subscriptions ── */}
       <div className="grid grid-cols-3 gap-4">
-        <div className="col-span-2">
-          <ScenarioPlanner />
-        </div>
 
-        <div className="space-y-4">
-          {/* LTGS card */}
-          {data.ltgs && (
-            <Card>
-              <CardContent className="pt-5">
-                <div className="flex items-start justify-between mb-2">
-                  <p className="text-xs text-muted-foreground">LTGS Remaining</p>
-                  {data.ltgs.remaining > 0 && (
-                    <AlertTriangle className="h-3.5 w-3.5 text-amber-500 shrink-0" />
-                  )}
-                </div>
-                <p className="text-xl font-semibold tabular-nums tracking-tight">
-                  {fmt(data.ltgs.remaining)}
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  of {fmt(data.ltgs.limit)} exemption
-                </p>
-                <div className="mt-3 h-1.5 w-full rounded-full bg-border overflow-hidden">
-                  <div
-                    className="h-full rounded-full bg-amber-400"
-                    style={{ width: `${Math.round((data.ltgs.used / data.ltgs.limit) * 100)}%` }}
-                  />
-                </div>
-                <p className="text-xs text-muted-foreground mt-2">
-                  {fmt(data.ltgs.used)} used · FY {data.ltgs.financialYear}
-                </p>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* SIP execution status */}
+        {/* LTGS */}
+        {data.ltgs ? (
           <Card>
             <CardContent className="pt-5">
-              <div className="flex items-center justify-between mb-3">
-                <div>
-                  <p className="text-xs text-muted-foreground mb-1">Monthly SIPs</p>
-                  <p className="text-xl font-semibold tabular-nums">
-                    {fmt(data.sip.total)}<span className="text-sm font-normal text-muted-foreground">/mo</span>
-                  </p>
-                </div>
-                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+              <div className="flex items-start justify-between mb-2">
+                <p className="text-xs text-muted-foreground">LTGS Remaining</p>
+                {data.ltgs.remaining > 0 && (
+                  <AlertTriangle className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+                )}
               </div>
-              {data.sip.sipStatus.length > 0 && (
-                <div className="space-y-1.5">
-                  {data.sip.sipStatus.map(s => (
-                    <div key={s.name} className="flex items-center justify-between text-xs">
-                      <div className="flex items-center gap-1.5 min-w-0">
-                        <div className={cn(
-                          "h-1.5 w-1.5 rounded-full shrink-0",
-                          s.executed ? "bg-emerald-500" : "bg-amber-400"
-                        )} />
-                        <span className="text-muted-foreground truncate">{s.name.split(" ")[0]}</span>
-                      </div>
-                      <span className={cn(
-                        "tabular-nums shrink-0 ml-2",
-                        s.executed ? "text-muted-foreground" : "text-foreground"
-                      )}>
-                        {s.executed ? `✓ ${s.sipDate}th` : `${s.sipDate}th${s.daysAway === 0 ? " (today)" : ` (${s.daysAway}d)`}`}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Subscriptions */}
-          <Card>
-            <CardContent className="pt-5">
-              <p className="text-xs text-muted-foreground mb-1">Subscriptions</p>
-              <p className="text-xl font-semibold tabular-nums">
-                {fmt(data.subscriptions.total)}<span className="text-sm font-normal text-muted-foreground">/mo</span>
+              <p className="text-xl font-semibold tabular-nums tracking-tight">
+                {fmt(data.ltgs.remaining)}
               </p>
               <p className="text-xs text-muted-foreground mt-1">
-                {data.subscriptions.count} active
+                of {fmt(data.ltgs.limit)} exemption
+              </p>
+              <div className="mt-3 h-1.5 w-full rounded-full bg-border overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-amber-400"
+                  style={{ width: `${Math.round((data.ltgs.used / data.ltgs.limit) * 100)}%` }}
+                />
+              </div>
+              <p className="text-xs text-muted-foreground mt-2">
+                {fmt(data.ltgs.used)} used · FY {data.ltgs.financialYear}
               </p>
             </CardContent>
           </Card>
-        </div>
+        ) : <div />}
+
+        {/* Monthly SIPs */}
+        <Card>
+          <CardContent className="pt-5">
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <p className="text-xs text-muted-foreground mb-1">Monthly SIPs</p>
+                <p className="text-xl font-semibold tabular-nums">
+                  {fmt(data.sip.total)}<span className="text-sm font-normal text-muted-foreground">/mo</span>
+                </p>
+              </div>
+              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+            </div>
+            {data.sip.sipStatus.length > 0 && (
+              <div className="space-y-1.5">
+                {data.sip.sipStatus.map(s => (
+                  <div key={s.name} className="flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <div className={cn(
+                        "h-1.5 w-1.5 rounded-full shrink-0",
+                        s.executed ? "bg-emerald-500" : "bg-amber-400"
+                      )} />
+                      <span className="text-muted-foreground truncate">{s.name.split(" ")[0]}</span>
+                    </div>
+                    <span className={cn(
+                      "tabular-nums shrink-0 ml-2",
+                      s.executed ? "text-muted-foreground" : "text-foreground"
+                    )}>
+                      {s.executed ? `✓ ${s.sipDate}th` : `${s.sipDate}th${s.daysAway === 0 ? " (today)" : ` (${s.daysAway}d)`}`}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Subscriptions */}
+        <Card>
+          <CardContent className="pt-5">
+            <p className="text-xs text-muted-foreground mb-1">Subscriptions</p>
+            <p className="text-xl font-semibold tabular-nums">
+              {fmt(data.subscriptions.total)}<span className="text-sm font-normal text-muted-foreground">/mo</span>
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              {data.subscriptions.count} active
+            </p>
+          </CardContent>
+        </Card>
+
       </div>
     </div>
   );
